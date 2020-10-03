@@ -5,7 +5,7 @@ import meilisearch
 earthdata_endpoint = "https://cmr.earthdata.nasa.gov"
 img_url_prefix = "https://cmr.earthdata.nasa.gov/browse-scaler/browse_images/datasets/"
 
-indexing_batch_size = 100
+indexing_batch_size = 50
 
 def get_collection_ids():
     batch_size = 2000
@@ -44,7 +44,7 @@ def get_collection_ids():
     return collection_ids
 
 
-client  = meilisearch.Client("http://localhost:7700/")
+client  = meilisearch.Client("http://localhost:7700/", "")
 index = client.get_or_create_index("nasa", options={"primaryKey": "id"})
 
 results = []
@@ -59,22 +59,29 @@ for collection_id in collection_ids:
         )
         if (response.status_code == 200):
             result = json.loads(response.text)
-            result['id'] = collection_id
-            result['img_url'] = img_url_prefix + collection_id
-            results.append(result)
+            document = {}
+            document['id'] = collection_id
+            document['img_url'] = img_url_prefix + collection_id
+            document['title'] = result['title']
+            document['summary'] = result['summary']
+            document['short_name'] = result['short_name']
+            document['original_format'] = result['original_format']
+            document['organizations'] = result['organizations']
+            document['data_center'] = result['data_center']
+            if "links" in result:
+                document['links'] = result['links']
+            if "time_start" in result:
+                document['time_start'] = result['time_start']
+            if "time_end" in result:
+                document['time_end'] = result['time_end']
+            results.append(document)
         else:
             raise Exception("Couldn't access CMR Earth Data API")
         print(collection_id, "success", len(results))
         
-    except Exception:
-        print(collection_id, result, len(results))
-        exit(1)
+    except Exception as e:
+        print("ERROR:", e)
+        print(collection_id, document, len(results))
     if (len(results) >= indexing_batch_size):
-        print(results)
         index.add_documents(results)
         results = []
-
-
-
-
-
