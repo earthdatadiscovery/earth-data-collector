@@ -17,7 +17,7 @@ This is a necesary step to create an accessible and open interface for finding E
 #### Clone the repository and install dependencies. You need `python 3` and `pip`
 
 ```bash
-https://github.com/earthdatadiscovery/earth-data-collector.git
+git clone https://github.com/earthdatadiscovery/earth-data-collector.git
 cd earth-data-collector
 pip install -r requirements.txt
 ```
