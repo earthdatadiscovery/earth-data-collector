@@ -7,7 +7,7 @@ from services.earthdata.earthdata import img_url_prefix, earthdata_endpoint
 # MeiliSearch Config
 meilisearch_client = meilisearch.Client("http://localhost:7700", "")
 index = meilisearch_client.get_or_create_index(
-    "nasa",
+    "earthdata",
     options={"primaryKey": "id"}
 )
 indexing_batch_size = 50
@@ -16,6 +16,20 @@ indexing_batch_size = 50
 def build_document(result, collection_id, has_granules=None):
 
     document = {}
+
+    # Count granules if present
+    granules = 0
+    if has_granules:
+        response = requests.get(
+            earthdata_endpoint + "/search/granules?collection_concept_id=" + collection_id,
+        )
+        if (response.status_code == 200):
+            from xml.dom import minidom
+            xmldoc = minidom.parseString(response.text)
+            items = xmldoc.getElementsByTagName('hits')[0]
+            granules = int(items.childNodes[0].data)
+
+
     document['id'] = collection_id
     document['img_url'] = img_url_prefix + collection_id
     document['title'] = result['title']
@@ -32,11 +46,7 @@ def build_document(result, collection_id, has_granules=None):
         document['time_start'] = result['time_start']
     if "time_end" in result:
         document['time_end'] = result['time_end']
-    if has_granules is not None:
-        if has_granules:
-            document['granules'] = 1
-        else:
-            document['granules'] = 0
+    document['granules'] = granules
     return document
 
 
