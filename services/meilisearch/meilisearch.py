@@ -2,14 +2,19 @@ import requests
 import json
 import meilisearch
 
-from earthdata_tools.earthdata_tools import img_url_prefix, earthdata_endpoint
+from services.earthdata.earthdata import img_url_prefix, earthdata_endpoint
 
 # MeiliSearch Config
-meilisearch_client  = meilisearch.Client("http://localhost:7700", "")
-index = meilisearch_client.get_or_create_index("nasa", options={"primaryKey": "id"})
+meilisearch_client = meilisearch.Client("http://localhost:7700", "")
+index = meilisearch_client.get_or_create_index(
+    "nasa",
+    options={"primaryKey": "id"}
+)
 indexing_batch_size = 50
 
-def build_document_data(result, collection_id, has_granules=None):
+
+def build_document(result, collection_id, has_granules=None):
+
     document = {}
     document['id'] = collection_id
     document['img_url'] = img_url_prefix + collection_id
@@ -19,6 +24,8 @@ def build_document_data(result, collection_id, has_granules=None):
     document['original_format'] = result['original_format']
     document['organizations'] = result['organizations']
     document['data_center'] = result['data_center']
+    if 'updated' in result:
+        document['updated'] = result['updated']
     if "links" in result:
         document['links'] = result['links']
     if "time_start" in result:
@@ -37,20 +44,23 @@ def index_collection(collection_ids, has_granules=None):
     results = []
 
     for collection_id in collection_ids:
+
         try:
             response = requests.get(
                 earthdata_endpoint + "/search/concepts/" + str(collection_id),
                 headers={"Accept": "application/json"},
             )
+
             if (response.status_code == 200):
                 result = json.loads(response.text)
-                document = build_document_data(result, collection_id, has_granules)
-                
+                document = build_document(result, collection_id, has_granules)
+
                 results.append(document)
             else:
+                print(response.status_code)
                 raise Exception("Couldn't access CMR Earth Data API")
             print(collection_id, "success", len(results))
-            
+
         except Exception as e:
             print("ERROR:", e)
         if (len(results) >= indexing_batch_size):

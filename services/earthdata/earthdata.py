@@ -5,6 +5,7 @@ import requests
 earthdata_endpoint = "https://cmr.earthdata.nasa.gov"
 img_url_prefix = "https://cmr.earthdata.nasa.gov/browse-scaler/browse_images/datasets/"
 
+
 def get_collection_ids(has_granules=None):
 
     batch_size = 2000
@@ -13,7 +14,7 @@ def get_collection_ids(has_granules=None):
         "offset": 0,
     }
     collection_ids = []
-    
+
     print("Gathering collections IDs from CMR Earth Data API")
     earthdata_url = earthdata_endpoint + "/search/collections/"
     if has_granules is not None:

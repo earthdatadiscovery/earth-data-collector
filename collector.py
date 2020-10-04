@@ -1,5 +1,5 @@
-from earthdata_tools.earthdata_tools import get_collection_ids
-from meilisearch_tools.meilisearch_tools import index_collection
+from services.earthdata.earthdata import get_collection_ids
+from services.meilisearch.meilisearch import index_collection
 
 if __name__ == "__main__":
     collection_ids = get_collection_ids(has_granules=True)
