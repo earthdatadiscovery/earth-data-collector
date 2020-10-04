@@ -30,9 +30,12 @@ def build_document(result, collection_id, has_granules=None):
             items = xmldoc.getElementsByTagName('hits')[0]
             granules = int(items.childNodes[0].data)
 
-    # Scrapping categories
-    cat_1 = []
-    cat_2 = {}
+    # Scrapping Categories and Geopraphic location
+    categories = []
+    subcategories = {}
+    continents = []
+    countries = []
+
     response = requests.get(
         earthdata_endpoint + "/search/concepts/" + collection_id,
         headers={'Accept':'text/html'}
@@ -44,11 +47,23 @@ def build_document(result, collection_id, has_granules=None):
             lists = div.find_all('ul', class_='arrow-tag-group-list')
             for list in lists:
                 elem = list.find_all('li', class_='arrow-tag-group-item')
-                if not elem[1].string in cat_1:
-                    cat_1.append(elem[1].string)
-                if not elem[1].string in cat_2:
-                    cat_2[elem[1].string] = []
-                cat_2[elem[1].string].append(elem[2].string)
+                if not elem[1].string in categories:
+                    categories.append(elem[1].string)
+                if not elem[1].string in subcategories:
+                    subcategories[elem[1].string] = []
+                subcategories[elem[1].string].append(elem[2].string)
+
+        location_div = soup.find_all('ul', class_='location-keywords-preview')
+        for div in location_div:
+            lists = div.find_all('ul', class_='arrow-tag-group-list')
+            for list in lists:
+                elements = list.find_all('li', class_='arrow-tag-group-item')
+                for i in range(len(elements)):
+                    if elements[i].string == 'CONTINENT':
+                        if not elements[i+1].string in continents:
+                            continents.append(elements[i+1].string)
+                        if not elements[-1].string in countries:
+                            countries.append(elements[-1].string)
 
 
     document= {}
@@ -60,8 +75,10 @@ def build_document(result, collection_id, has_granules=None):
     document['original_format'] = result['original_format']
     document['organizations'] = result['organizations']
     document['data_center'] = result['data_center']
-    document['categories'] = cat_1
-    document['subcategories'] = cat_2
+    document['categories'] = categories
+    document['subcategories'] = subcategories
+    document['continents'] = continents
+    document['countries'] = countries
     if 'updated' in result:
         document['updated'] = result['updated']
     if "links" in result:
