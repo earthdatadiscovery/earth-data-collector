@@ -1,6 +1,7 @@
 import requests
 import json
 import meilisearch
+from bs4 import BeautifulSoup
 
 from services.earthdata.earthdata import img_url_prefix, earthdata_endpoint
 
@@ -15,7 +16,7 @@ indexing_batch_size = 50
 
 def build_document(result, collection_id, has_granules=None):
 
-    document = {}
+
 
     # Count granules if present
     granules = 0
@@ -29,7 +30,28 @@ def build_document(result, collection_id, has_granules=None):
             items = xmldoc.getElementsByTagName('hits')[0]
             granules = int(items.childNodes[0].data)
 
+    # Scrapping categories
+    cat_1 = []
+    cat_2 = {}
+    response = requests.get(
+        earthdata_endpoint + "/search/concepts/" + collection_id,
+        headers={'Accept':'text/html'}
+    )
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        keywords_div = soup.find_all('div', class_='science-keywords-preview')
+        for div in keywords_div:
+            lists = div.find_all('ul', class_='arrow-tag-group-list')
+            for list in lists:
+                elem = list.find_all('li', class_='arrow-tag-group-item')
+                if not elem[1].string in cat_1:
+                    cat_1.append(elem[1].string)
+                if not elem[1].string in cat_2:
+                    cat_2[elem[1].string] = []
+                cat_2[elem[1].string].append(elem[2].string)
 
+
+    document= {}
     document['id'] = collection_id
     document['img_url'] = img_url_prefix + collection_id
     document['title'] = result['title']
@@ -38,6 +60,8 @@ def build_document(result, collection_id, has_granules=None):
     document['original_format'] = result['original_format']
     document['organizations'] = result['organizations']
     document['data_center'] = result['data_center']
+    document['categories'] = cat_1
+    document['subcategories'] = cat_2
     if 'updated' in result:
         document['updated'] = result['updated']
     if "links" in result:
